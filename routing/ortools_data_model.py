@@ -1,4 +1,7 @@
 from .models import InputData
+from .settings import settings
+
+
 from typing import Dict, List, Tuple
 from copy import deepcopy
 import logging
@@ -7,11 +10,14 @@ logger = logging.getLogger("routing")
 
 
 class OrToolsDataModel:
+    """Data module class for ortools solver"""
+
     def __init__(
         self,
         num_nodes: int,
         num_vehicles: int,
         distance_matrix: List[List[int]],
+        service_time: List[int],
         vehicle_starts: List[int],
         vehicle_ends: List[int],
         vehicle_capacities: List[int],
@@ -21,6 +27,7 @@ class OrToolsDataModel:
         self.num_nodes = num_nodes
         self.num_vehicles = num_vehicles
         self.distance_matrix = distance_matrix
+        self.service_time = service_time
         self.vehicle_starts = vehicle_starts
         self.vehicle_ends = vehicle_ends
         self.vehicle_capacities = vehicle_capacities
@@ -29,8 +36,9 @@ class OrToolsDataModel:
 
 
 def create_ortools_data_model(input_data: InputData) -> OrToolsDataModel:
+    """Converts raw input data to a more useful format for ortools vrp solver."""
     try:
-        num_nodes, distance_matrix = _prep_distance_matrix(input_data)
+        num_nodes, distance_matrix, service_time = _prep_distance_matrix(input_data)
 
         dummy_end_node_id = num_nodes - 1
 
@@ -46,6 +54,7 @@ def create_ortools_data_model(input_data: InputData) -> OrToolsDataModel:
             num_nodes,
             num_vehicles,
             distance_matrix,
+            service_time,
             vehicle_starts,
             vehicle_ends,
             vehicle_capacities,
@@ -57,23 +66,32 @@ def create_ortools_data_model(input_data: InputData) -> OrToolsDataModel:
         return None
 
 
-def _prep_distance_matrix(input_data: InputData) -> Tuple[int, List[List[int]]]:
-    """prepares distance matrix
+def _prep_distance_matrix(
+    input_data: InputData,
+) -> Tuple[int, List[List[int]], List[int]]:
+    """prepares distance matrix and service_time array
 
     vehicles are allowed to end at arbitrary locations. To set up the problem this way,
     simply modify the distance matrix so that distance to the dummyEndNode from any other
     location is 0.
     """
     distance_matrix = deepcopy(input_data.matrix)
+    n = len(distance_matrix)
 
     # Add dummyEndNode's own row and distance to other nodes (all 0).
-    n = len(distance_matrix)
     for row in distance_matrix:
-        row.append(0)
+        row.append(0)  # from all other nodes to DummyEnd
     dummy_row = [0] * (n + 1)
-    distance_matrix.append(dummy_row)
+    distance_matrix.append(dummy_row)  # from DummyEnd to all other
 
-    return len(distance_matrix), distance_matrix
+    # Add service time of jobs at the locations
+    service_time = [0] * (n + 1)
+    if settings.use_service_time:
+        for job in input_data.jobs:
+            service_time[job.location_index] += job.service
+
+    print(service_time)
+    return len(distance_matrix), distance_matrix, service_time
 
 
 def _prep_vehicles(
@@ -92,7 +110,7 @@ def _prep_vehicles(
 def _prep_demands(num_nodes: int, input_data: InputData) -> List[int]:
     """prepares node_demand array by iterating over all jobs
 
-    multiple job's location_index can point to same node
+    FIXME multiple job's location_index can point to same node
     """
     node_demands = [0] * num_nodes
     for job in input_data.jobs:
@@ -102,6 +120,10 @@ def _prep_demands(num_nodes: int, input_data: InputData) -> List[int]:
 
 
 def _prep_location_to_job_map(input_data: InputData):
+    """prepares locationindex_to_jobid map
+
+    FIXME multiple job's location_index can point to same node
+    """
     node_location_to_job_id = {}
     for job in input_data.jobs:
         node_location_to_job_id[job.location_index] = job.id

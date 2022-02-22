@@ -27,10 +27,12 @@ def solveOrtoolsRouting(input_data: InputData) -> OutputData:
     # Add the distance callback
 
     def distance_callback(from_index, to_index):
-        """Returns the distance between the two nodes."""
+        """Returns the distance between the two nodes (+ service_time if enabled).
+        delivery_duration(i,j) = distance(i,j) + service_time(j)
+        """
         from_node = manager.IndexToNode(from_index)
         to_node = manager.IndexToNode(to_index)
-        return data.distance_matrix[from_node][to_node]
+        return data.distance_matrix[from_node][to_node] + data.service_time[to_node]
 
     transit_callback_index = routing.RegisterTransitCallback(distance_callback)
     routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)

@@ -17,6 +17,17 @@ pip install -r requirements.txt
 uvicorn routing.api:app --reload
 ```
 
+## Installing (with Docker)
+
+```
+docker build -t routing .
+docker run -d --name routing -p 80:80 routing
+
+docker run -d --name routing -p 80:80 --env USE_SERVICE_TIME=False routing
+
+```
+
+
 
 ## Development Setup
 
