@@ -1,0 +1,5 @@
+ortools
+pydantic
+fastapi[all]
+pytest
+black
