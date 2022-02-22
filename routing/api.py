@@ -13,7 +13,7 @@ async def root():
 
 
 @app.post(
-    "/task",
+    "/",
     responses={
         200: {"model": OutputData},
         500: {
