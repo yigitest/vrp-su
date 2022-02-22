@@ -1,0 +1,4 @@
+ortools
+pydantic
+fastapi[all]
+pytest
