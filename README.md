@@ -1,4 +1,4 @@
-# vr-su | vehicle routing
+# vrp-su | vehicle routing
 
 A solver for the capacitated vehicle routing problem using ortools and fastapi.
 
